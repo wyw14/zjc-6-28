@@ -26,8 +26,52 @@ body {
 h1 {
   text-align: center;
   color: #333;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   font-size: 2em;
+}
+
+.level-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.level-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1em;
+  transition: all 0.3s;
+}
+
+.level-dot.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.level-dot.completed {
+  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  color: #333;
+}
+
+.level-line {
+  width: 50px;
+  height: 3px;
+  background: #e0e0e0;
+  margin: 0 5px;
+  transition: background 0.3s;
+}
+
+.level-line.completed {
+  background: linear-gradient(90deg, #84fab0 0%, #8fd3f4 100%);
 }
 
 .game-info {
@@ -59,10 +103,21 @@ h1 {
 
 .game-board {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 20px;
   perspective: 1000px;
+}
+
+.game-board.level-1 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.game-board.level-2 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.game-board.level-3 {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .card {
@@ -265,6 +320,70 @@ h1 {
 .leaderboard-list .time {
   font-weight: bold;
   color: #667eea;
+}
+
+.level-results {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.level-result-item {
+  padding: 10px 15px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.level-result-item.passed {
+  background: linear-gradient(135deg, #e8f8ef 0%, #d4f1e0 100%);
+  border-left: 4px solid #52c41a;
+}
+
+.level-result-item.failed {
+  background: linear-gradient(135deg, #fff1f0 0%, #ffd9d4 100%);
+  border-left: 4px solid #ff4d4f;
+}
+
+.level-result-item .level-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.level-result-item .level-stats {
+  display: flex;
+  gap: 15px;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.level-result-item .status-badge {
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.level-result-item.passed .status-badge {
+  background: #52c41a;
+  color: white;
+}
+
+.level-result-item.failed .status-badge {
+  background: #ff4d4f;
+  color: white;
+}
+
+.timer-warning {
+  color: #ff4d4f !important;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @media (max-width: 480px) {

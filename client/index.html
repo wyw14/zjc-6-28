@@ -10,9 +10,21 @@
   <div class="container">
     <h1>🃏 翻牌配对小游戏</h1>
     
+    <div class="level-progress">
+      <div class="level-dot" id="levelDot1">1</div>
+      <div class="level-line"></div>
+      <div class="level-dot" id="levelDot2">2</div>
+      <div class="level-line"></div>
+      <div class="level-dot" id="levelDot3">3</div>
+    </div>
+    
     <div class="game-info">
       <div class="info-item">
-        <span class="label">⏱️ 用时</span>
+        <span class="label">🏁 当前关卡</span>
+        <span id="currentLevel" class="value">第一关</span>
+      </div>
+      <div class="info-item">
+        <span class="label">⏱️ 剩余时间</span>
         <span id="timer" class="value">00:00</span>
       </div>
       <div class="info-item">
@@ -21,7 +33,7 @@
       </div>
       <div class="info-item">
         <span class="label">✅ 已配对</span>
-        <span id="matched" class="value">0/8</span>
+        <span id="matched" class="value">0/6</span>
       </div>
     </div>
 
@@ -32,17 +44,35 @@
       <button id="leaderboardBtn" class="btn btn-secondary">🏆 排行榜</button>
     </div>
 
-    <div id="winModal" class="modal hidden">
+    <div id="levelCompleteModal" class="modal hidden">
       <div class="modal-content">
-        <h2>🎉 恭喜通关！</h2>
-        <p>你的成绩：<span id="finalTime">00:00</span></p>
-        <p>总步数：<span id="finalMoves">0</span></p>
+        <h2 id="levelCompleteTitle">🎉 第一关通过！</h2>
+        <p>本关用时：<span id="levelTime">00:00</span></p>
+        <p>本关步数：<span id="levelMoves">0</span></p>
+        <button id="nextLevelBtn" class="btn btn-primary">进入下一关</button>
+      </div>
+    </div>
+
+    <div id="failModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>⏰ 时间到！挑战失败</h2>
+        <p id="failLevel">你在第一关挑战失败</p>
+        <button id="showResultBtn" class="btn btn-primary">查看结算</button>
+      </div>
+    </div>
+
+    <div id="resultModal" class="modal hidden">
+      <div class="modal-content">
+        <h2 id="resultTitle">🏆 挑战结算</h2>
+        <p>总用时：<span id="totalTime">00:00</span></p>
+        <p>通关关数：<span id="passedLevels">0</span>/3</p>
+        <div id="levelResults" class="level-results"></div>
         <div class="input-group">
           <label for="playerName">输入你的名字：</label>
           <input type="text" id="playerName" placeholder="匿名玩家" maxlength="10">
         </div>
         <button id="submitScoreBtn" class="btn btn-primary">提交成绩</button>
-        <button id="playAgainBtn" class="btn btn-secondary">再玩一次</button>
+        <button id="playAgainBtn" class="btn btn-secondary">重新挑战</button>
       </div>
     </div>
 

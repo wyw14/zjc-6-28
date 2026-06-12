@@ -9,7 +9,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
 
-const CARD_PAIRS = 8;
+const LEVELS = [
+  { level: 1, cardPairs: 6, maxTime: 60, name: '第一关' },
+  { level: 2, cardPairs: 8, maxTime: 90, name: '第二关' },
+  { level: 3, cardPairs: 10, maxTime: 120, name: '第三关' }
+];
+
 let leaderboard = [];
 
 function shuffle(array) {
@@ -21,26 +26,39 @@ function shuffle(array) {
   return arr;
 }
 
+app.get('/api/levels', (req, res) => {
+  res.json({ levels: LEVELS });
+});
+
 app.get('/api/shuffle', (req, res) => {
+  const level = parseInt(req.query.level) || 1;
+  const levelConfig = LEVELS.find(l => l.level === level) || LEVELS[0];
+  
   const cardIds = [];
-  for (let i = 1; i <= CARD_PAIRS; i++) {
+  for (let i = 1; i <= levelConfig.cardPairs; i++) {
     cardIds.push(i, i);
   }
   const shuffled = shuffle(cardIds);
-  res.json({ cards: shuffled });
+  res.json({
+    cards: shuffled,
+    level: levelConfig.level,
+    cardPairs: levelConfig.cardPairs,
+    maxTime: levelConfig.maxTime,
+    name: levelConfig.name
+  });
 });
 
 app.post('/api/score', (req, res) => {
   const { time, playerName } = req.body;
   
   if (typeof time !== 'number' || time <= 0) {
-    return res.status(400).json({ error: '鏃犳晥鐨勬垚缁╂暟鎹? });
+    return res.status(400).json({ error: 'Invalid score data' });
   }
 
   const entry = {
     id: Date.now(),
     time: time,
-    playerName: playerName || '鍖垮悕鐜╁',
+    playerName: playerName || 'Anonymous',
     date: new Date().toLocaleString('zh-CN')
   };
 
@@ -62,5 +80,5 @@ app.get('/api/leaderboard', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`鏈嶅姟鍣ㄨ繍琛屽湪 http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });

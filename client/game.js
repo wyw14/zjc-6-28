@@ -1,26 +1,43 @@
 ﻿const API_BASE_URL = 'http://localhost:6057/api';
 
 const CARD_EMOJIS = {
-  1: '馃惗',
-  2: '馃惐',
-  3: '馃惣',
-  4: '馃',
-  5: '馃',
-  6: '馃惛',
-  7: '馃惖',
-  8: '馃惃'
+  1: '🍎',
+  2: '🍊',
+  3: '🍋',
+  4: '🍇',
+  5: '🍓',
+  6: '🍒',
+  7: '🍑',
+  8: '🥝',
+  9: '🍍',
+  10: '🥭',
+  11: '🍌',
+  12: '🍉'
 };
+
+const LEVEL_NAMES = ['第一关', '第二关', '第三关'];
 
 const gameBoard = document.getElementById('gameBoard');
 const timerEl = document.getElementById('timer');
 const movesEl = document.getElementById('moves');
 const matchedEl = document.getElementById('matched');
+const currentLevelEl = document.getElementById('currentLevel');
 const restartBtn = document.getElementById('restartBtn');
 const leaderboardBtn = document.getElementById('leaderboardBtn');
-const winModal = document.getElementById('winModal');
+const levelCompleteModal = document.getElementById('levelCompleteModal');
+const failModal = document.getElementById('failModal');
+const resultModal = document.getElementById('resultModal');
 const leaderboardModal = document.getElementById('leaderboardModal');
-const finalTimeEl = document.getElementById('finalTime');
-const finalMovesEl = document.getElementById('finalMoves');
+const levelCompleteTitle = document.getElementById('levelCompleteTitle');
+const levelTimeEl = document.getElementById('levelTime');
+const levelMovesEl = document.getElementById('levelMoves');
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+const failLevelEl = document.getElementById('failLevel');
+const showResultBtn = document.getElementById('showResultBtn');
+const resultTitle = document.getElementById('resultTitle');
+const totalTimeEl = document.getElementById('totalTime');
+const passedLevelsEl = document.getElementById('passedLevels');
+const levelResultsEl = document.getElementById('levelResults');
 const playerNameInput = document.getElementById('playerName');
 const submitScoreBtn = document.getElementById('submitScoreBtn');
 const playAgainBtn = document.getElementById('playAgainBtn');
@@ -32,23 +49,54 @@ let flippedCards = [];
 let matchedPairs = 0;
 let moves = 0;
 let timer = null;
-let startTime = null;
-let elapsedTime = 0;
+let remainingTime = 0;
+let currentLevel = 1;
+let currentCardPairs = 6;
+let currentMaxTime = 60;
 let gameStarted = false;
 let isProcessing = false;
+let levelResults = [];
+let challengeStartTime = null;
+let challengeEnded = false;
 
-async function initGame() {
-  resetGameState();
-  const shuffledCards = await fetchShuffledCards();
-  renderCards(shuffledCards);
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-function resetGameState() {
+function updateLevelProgressUI() {
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById(`levelDot${i}`);
+    dot.classList.remove('active', 'completed');
+    if (i < currentLevel) {
+      dot.classList.add('completed');
+    } else if (i === currentLevel) {
+      dot.classList.add('active');
+    }
+  }
+  const lines = document.querySelectorAll('.level-line');
+  lines.forEach((line, index) => {
+    line.classList.remove('completed');
+    if (index + 1 < currentLevel) {
+      line.classList.add('completed');
+    }
+  });
+}
+
+async function initGame() {
+  currentLevel = 1;
+  levelResults = [];
+  challengeStartTime = Date.now();
+  challengeEnded = false;
+  startLevel(currentLevel);
+}
+
+function resetLevelState() {
   cards = [];
   flippedCards = [];
   matchedPairs = 0;
   moves = 0;
-  elapsedTime = 0;
   gameStarted = false;
   isProcessing = false;
   
@@ -57,28 +105,53 @@ function resetGameState() {
     timer = null;
   }
   
-  updateTimerDisplay();
   movesEl.textContent = '0';
-  matchedEl.textContent = '0/8';
+  matchedEl.textContent = `0/${currentCardPairs}`;
   gameBoard.innerHTML = '';
+  gameBoard.className = `game-board level-${currentLevel}`;
+  timerEl.classList.remove('timer-warning');
 }
 
-async function fetchShuffledCards() {
+async function startLevel(level) {
+  resetLevelState();
+  updateLevelProgressUI();
+  
+  const data = await fetchShuffledCards(level);
+  currentCardPairs = data.cardPairs;
+  currentMaxTime = data.maxTime;
+  remainingTime = data.maxTime;
+  
+  currentLevelEl.textContent = LEVEL_NAMES[level - 1];
+  matchedEl.textContent = `0/${currentCardPairs}`;
+  updateTimerDisplay();
+  
+  renderCards(data.cards);
+}
+
+async function fetchShuffledCards(level) {
   try {
-    const response = await fetch(`${API_BASE_URL}/shuffle`);
+    const response = await fetch(`${API_BASE_URL}/shuffle?level=${level}`);
     const data = await response.json();
-    return data.cards;
+    return data;
   } catch (error) {
-    console.error('鑾峰彇娲楃墝鏁版嵁澶辫触:', error);
+    console.error('获取洗牌数据失败:', error);
+    const fallbackPairs = level === 1 ? 6 : level === 2 ? 8 : 10;
+    const fallbackTime = level === 1 ? 60 : level === 2 ? 90 : 120;
     const fallbackCards = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= fallbackPairs; i++) {
       fallbackCards.push(i, i);
     }
     for (let i = fallbackCards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [fallbackCards[i], fallbackCards[j]] = [fallbackCards[j], fallbackCards[i]];
     }
-    return fallbackCards;
+    return {
+      cards: fallbackCards,
+      level: level,
+      cardPairs: fallbackPairs,
+      maxTime: fallbackTime,
+      name: LEVEL_NAMES[level - 1]
+    };
   }
 }
 
@@ -94,7 +167,7 @@ function renderCards(cardIds) {
     
     const cardFront = document.createElement('div');
     cardFront.className = 'card-face card-front';
-    cardFront.textContent = CARD_EMOJIS[cardId] || '鉂?;
+    cardFront.textContent = CARD_EMOJIS[cardId] || '❓';
     
     card.appendChild(cardBack);
     card.appendChild(cardFront);
@@ -107,6 +180,7 @@ function renderCards(cardIds) {
 }
 
 function handleCardClick(card) {
+  if (challengeEnded) return;
   if (isProcessing) return;
   if (card.classList.contains('flipped')) return;
   if (card.classList.contains('matched')) return;
@@ -147,12 +221,12 @@ function checkMatch() {
       card1.classList.add('matched');
       card2.classList.add('matched');
       matchedPairs++;
-      matchedEl.textContent = `${matchedPairs}/8`;
+      matchedEl.textContent = `${matchedPairs}/${currentCardPairs}`;
       flippedCards = [];
       isProcessing = false;
       
-      if (matchedPairs === 8) {
-        endGame();
+      if (matchedPairs === currentCardPairs) {
+        completeLevel();
       }
     }, 500);
   } else {
@@ -166,35 +240,105 @@ function checkMatch() {
 }
 
 function startTimer() {
-  startTime = Date.now() - elapsedTime;
   timer = setInterval(() => {
-    elapsedTime = Date.now() - startTime;
+    remainingTime--;
     updateTimerDisplay();
-  }, 100);
+    
+    if (remainingTime <= 10) {
+      timerEl.classList.add('timer-warning');
+    }
+    
+    if (remainingTime <= 0) {
+      failLevel();
+    }
+  }, 1000);
 }
 
 function updateTimerDisplay() {
-  const totalSeconds = Math.floor(elapsedTime / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  timerEl.textContent = formatTime(Math.max(0, remainingTime));
 }
 
-function endGame() {
+function completeLevel() {
   clearInterval(timer);
   timer = null;
   
-  finalTimeEl.textContent = timerEl.textContent;
-  finalMovesEl.textContent = moves;
+  const usedTime = currentMaxTime - remainingTime;
+  levelResults.push({
+    level: currentLevel,
+    name: LEVEL_NAMES[currentLevel - 1],
+    passed: true,
+    time: usedTime,
+    moves: moves
+  });
   
+  if (currentLevel >= 3) {
+    challengeEnded = true;
+    setTimeout(() => {
+      showFinalResult();
+    }, 500);
+  } else {
+    levelCompleteTitle.textContent = `🎉 ${LEVEL_NAMES[currentLevel - 1]}通过！`;
+    levelTimeEl.textContent = formatTime(usedTime);
+    levelMovesEl.textContent = moves;
+    setTimeout(() => {
+      levelCompleteModal.classList.remove('hidden');
+    }, 500);
+  }
+}
+
+function failLevel() {
+  clearInterval(timer);
+  timer = null;
+  challengeEnded = true;
+  
+  levelResults.push({
+    level: currentLevel,
+    name: LEVEL_NAMES[currentLevel - 1],
+    passed: false,
+    time: currentMaxTime,
+    moves: moves
+  });
+  
+  failLevelEl.textContent = `你在${LEVEL_NAMES[currentLevel - 1]}挑战失败`;
   setTimeout(() => {
-    winModal.classList.remove('hidden');
+    failModal.classList.remove('hidden');
   }, 500);
 }
 
+function showFinalResult() {
+  const totalSeconds = Math.floor((Date.now() - challengeStartTime) / 1000);
+  const passedCount = levelResults.filter(r => r.passed).length;
+  
+  totalTimeEl.textContent = formatTime(totalSeconds);
+  passedLevelsEl.textContent = passedCount;
+  
+  if (passedCount === 3) {
+    resultTitle.textContent = '🏆 恭喜全部通关！';
+  } else {
+    resultTitle.textContent = '📊 挑战结算';
+  }
+  
+  levelResultsEl.innerHTML = '';
+  levelResults.forEach(result => {
+    const item = document.createElement('div');
+    item.className = `level-result-item ${result.passed ? 'passed' : 'failed'}`;
+    item.innerHTML = `
+      <span class="level-name">${result.name}</span>
+      <span class="level-stats">
+        <span>用时: ${formatTime(result.time)}</span>
+        <span>步数: ${result.moves}</span>
+        <span class="status-badge">${result.passed ? '通过' : '失败'}</span>
+      </span>
+    `;
+    levelResultsEl.appendChild(item);
+  });
+  
+  resultModal.classList.remove('hidden');
+}
+
 async function submitScore() {
-  const playerName = playerNameInput.value.trim() || '鍖垮悕鐜╁';
-  const timeInSeconds = Math.floor(elapsedTime / 1000);
+  const playerName = playerNameInput.value.trim() || '匿名玩家';
+  const totalSeconds = Math.floor((Date.now() - challengeStartTime) / 1000);
 
   try {
     const response = await fetch(`${API_BASE_URL}/score`, {
@@ -203,7 +347,7 @@ async function submitScore() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        time: timeInSeconds,
+        time: totalSeconds,
         playerName: playerName
       })
     });
@@ -211,13 +355,13 @@ async function submitScore() {
     const data = await response.json();
     
     if (data.success) {
-      alert(`鎭枩锛佷綘鎺掑悕绗?${data.rank} 鍚嶏紒`);
-      winModal.classList.add('hidden');
+      alert(`恭喜！你排名第 ${data.rank} 名！`);
+      resultModal.classList.add('hidden');
       showLeaderboard();
     }
   } catch (error) {
-    console.error('鎻愪氦鎴愮哗澶辫触:', error);
-    alert('鎻愪氦鎴愮哗澶辫触锛岃绋嶅悗閲嶈瘯');
+    console.error('提交成绩失败:', error);
+    alert('提交成绩失败，请稍后重试');
   }
 }
 
@@ -227,8 +371,8 @@ async function showLeaderboard() {
     const data = await response.json();
     renderLeaderboard(data.leaderboard);
   } catch (error) {
-    console.error('鑾峰彇鎺掕姒滃け璐?', error);
-    leaderboardList.innerHTML = '<li>鍔犺浇鎺掕姒滃け璐?/li>';
+    console.error('获取排行榜失败:', error);
+    leaderboardList.innerHTML = '<li>加载排行榜失败</li>';
   }
   
   leaderboardModal.classList.remove('hidden');
@@ -236,7 +380,7 @@ async function showLeaderboard() {
 
 function renderLeaderboard(leaderboard) {
   if (!leaderboard || leaderboard.length === 0) {
-    leaderboardList.innerHTML = '<li class="empty-message">鏆傛棤璁板綍锛屽揩鏉ユ寫鎴樺惂锛?/li>';
+    leaderboardList.innerHTML = '<li class="empty-message">暂无记录，快来挑战吧！</li>';
     return;
   }
 
@@ -246,9 +390,7 @@ function renderLeaderboard(leaderboard) {
     const li = document.createElement('li');
     li.className = 'rank-item';
     
-    const minutes = Math.floor(entry.time / 60);
-    const seconds = entry.time % 60;
-    const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    const timeStr = formatTime(entry.time);
     
     li.innerHTML = `
       <span class="rank-name">
@@ -262,9 +404,20 @@ function renderLeaderboard(leaderboard) {
   });
 }
 
+nextLevelBtn.addEventListener('click', () => {
+  levelCompleteModal.classList.add('hidden');
+  currentLevel++;
+  startLevel(currentLevel);
+});
+
+showResultBtn.addEventListener('click', () => {
+  failModal.classList.add('hidden');
+  showFinalResult();
+});
+
 restartBtn.addEventListener('click', initGame);
 playAgainBtn.addEventListener('click', () => {
-  winModal.classList.add('hidden');
+  resultModal.classList.add('hidden');
   initGame();
 });
 leaderboardBtn.addEventListener('click', showLeaderboard);
