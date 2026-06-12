@@ -24,14 +24,9 @@ const matchedEl = document.getElementById('matched');
 const currentLevelEl = document.getElementById('currentLevel');
 const restartBtn = document.getElementById('restartBtn');
 const leaderboardBtn = document.getElementById('leaderboardBtn');
-const levelCompleteModal = document.getElementById('levelCompleteModal');
 const failModal = document.getElementById('failModal');
 const resultModal = document.getElementById('resultModal');
 const leaderboardModal = document.getElementById('leaderboardModal');
-const levelCompleteTitle = document.getElementById('levelCompleteTitle');
-const levelTimeEl = document.getElementById('levelTime');
-const levelMovesEl = document.getElementById('levelMoves');
-const nextLevelBtn = document.getElementById('nextLevelBtn');
 const failLevelEl = document.getElementById('failLevel');
 const showResultBtn = document.getElementById('showResultBtn');
 const resultTitle = document.getElementById('resultTitle');
@@ -277,12 +272,10 @@ function completeLevel() {
       showFinalResult();
     }, 500);
   } else {
-    levelCompleteTitle.textContent = `🎉 ${LEVEL_NAMES[currentLevel - 1]}通过！`;
-    levelTimeEl.textContent = formatTime(usedTime);
-    levelMovesEl.textContent = moves;
     setTimeout(() => {
-      levelCompleteModal.classList.remove('hidden');
-    }, 500);
+      currentLevel++;
+      startLevel(currentLevel);
+    }, 800);
   }
 }
 
@@ -403,12 +396,6 @@ function renderLeaderboard(leaderboard) {
     leaderboardList.appendChild(li);
   });
 }
-
-nextLevelBtn.addEventListener('click', () => {
-  levelCompleteModal.classList.add('hidden');
-  currentLevel++;
-  startLevel(currentLevel);
-});
 
 showResultBtn.addEventListener('click', () => {
   failModal.classList.add('hidden');
